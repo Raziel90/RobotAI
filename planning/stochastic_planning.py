@@ -36,18 +36,41 @@ delta_name = ['^', '<', 'v', '>']  # Use these when creating your policy grid.
 # ---------------------------------------------
 
 def stochastic_value(grid, goal, cost_step, collision_cost, success_prob):
-    isvalid = lambda x, y: x
+    isvalid = lambda x, y: 0 <= x < len(grid) and 0 <= y < len(grid[0])  # and grid[x][y] == 0
     failure_prob = (1.0 - success_prob) / 2.0  # Probability(stepping left) = prob(stepping right) = failure_prob
     value = [[collision_cost for col in range(len(grid[0]))] for row in range(len(grid))]
     policy = [[' ' for col in range(len(grid[0]))] for row in range(len(grid))]
+    err_prob = [success_prob, (1 - success_prob) / 2]
 
     done = False
     while not done:
         done = True
         for x in range(len(grid)):
             for y in range(len(grid[0])):
-                for move in delta:
-                    x2, y2 = (x + move[0], y + move[1])
+                if [x, y] == goal:
+                    if value[x][y] > 0:
+                        value[x][y] = 0
+                        policy[x][y] = '*'
+                        done = False
+
+                elif grid[x][y] == 0:
+
+                    for dir, move in enumerate(delta):
+                        c2 = 0
+                        for err in [-1, 1, 0]:
+                            x2, y2 = (x + delta[(dir + err) % 4][0], y + delta[(dir + err) % 4][1])
+                            if isvalid(x2, y2):
+                                c2 += (value[x2][y2] + cost_step) * err_prob[int(abs(err))]
+                            else:
+                                c2 += (collision_cost + cost_step) * err_prob[int(abs(err))]
+                        # here x2 and y2 have err == 0
+                        if value[x][y] > c2:
+                            value[x][y] = c2
+                            policy[x][y] = delta_name[dir]
+                            done = False
+
+
+
 
     return value, policy
 
@@ -67,11 +90,11 @@ success_prob = 0.5
 
 value, policy = stochastic_value(grid, goal, cost_step, collision_cost, success_prob)
 for row in value:
-    print
-    row
+    print(row)
+
 for row in policy:
-    print
-    row
+    print(row)
+
 
 # Expected outputs:
 #
