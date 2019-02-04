@@ -18,8 +18,6 @@
 from copy import deepcopy
 
 
-######################## ENTER CODE BELOW HERE #########################
-
 def smooth(path, fix, weight_data=0.0, weight_smooth=0.1, tolerance=0.00001):
     #
     # Enter code here.
@@ -27,29 +25,26 @@ def smooth(path, fix, weight_data=0.0, weight_smooth=0.1, tolerance=0.00001):
     #
     newpath = deepcopy(path)
     maxiter = 1000
+    itr = 0
     change = tolerance
+    n = len(path)
+    gamma = (weight_smooth * 0.5)
     while change >= tolerance:
         change = 0.0
+        itr += 1
         for i in range(len(path)):
             if not fix[i]:
                 for j in range(len(path[0])):
                     old = newpath[i][j]
 
-                    # newpath[i][j] += \
-                    #     weight_data * (newpath[i][j] - path[i][j]) + \
-                    #     weight_smooth * (newpath[(i + 1) % len(path)][j] + newpath[(i - 1) % len(path)][j] -2 * newpath[i][j]) +\
-                    #     (weight_smooth / 2.0) * (2.0 * newpath[(i-1) % len(path)][j]
-                    #                              - newpath[(i-2)%len(path)][j] - newpath[i][j]) + \
-                    #     (weight_smooth / 2.0) * (2.0 * newpath[(i+1) % len(path)][j]
-                    #                              - newpath[(i+2)%len(path)][j] - newpath[i][j])
-                    newpath[i][j] += weight_smooth * (
-                                newpath[(i - 1) % len(path)][j] + newpath[(i + 1) % len(path)][j] - \
-                                2.0 * newpath[i][j]) + \
-                                     (weight_smooth / 2.0) * (2.0 * newpath[(i - 1) % len(path)][j] -
-                                                              newpath[(i - 2) % len(path)][j] - newpath[i][j]) + \
-                                     (weight_smooth / 2.0) * (2.0 * newpath[(i + 1) % len(path)][j] -
-                                                              newpath[(i + 2) % len(path)][j] - newpath[i][j])
-                    change = abs(old - newpath[i][j])
+                    newpath[i][j] += weight_data * (path[i][j] - newpath[i][j]) + \
+                                     weight_smooth * (
+                                                 newpath[(i - 1) % n][j] + newpath[(i + 1) % n][j] - 2.0 * newpath[i][
+                                             j]) + \
+                                     gamma * (2.0 * newpath[(i - 1) % n][j] - newpath[(i - 2) % n][j] - newpath[i][j]) + \
+                                     gamma * (2.0 * newpath[(i + 1) % n][j] - newpath[(i + 2) % n][j] - newpath[i][j])
+
+                    change += abs(old - newpath[i][j])
 
     return newpath
 
@@ -176,15 +171,15 @@ updated once per iteration, or else the intermediate updates made to newpath[i][
 will affect the final answer.\n''')
 
 
-testpaths = [
-    [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [6, 1], [6, 2], [6, 3], [5, 3], [4, 3], [3, 3], [2, 3],
-     [1, 3], [0, 3], [0, 2], [0, 1]],
-    [[0, 0], [2, 0], [4, 0], [4, 2], [4, 4], [2, 4], [0, 4], [0, 2]]]
-testfixpts = [[1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
-              [1, 0, 1, 0, 1, 0, 1, 0]]
-path = testpaths[0]
-newpath = smooth(path, testfixpts[0])
-for i in range(len(path)):
-    print('[' + ', '.join('%.3f' % x for x in path[i]) + '] -> [' + ', '.join('%.3f' % x for x in newpath[i]) + ']')
+# testpaths = [
+#     [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [6, 1], [6, 2], [6, 3], [5, 3], [4, 3], [3, 3], [2, 3],
+#      [1, 3], [0, 3], [0, 2], [0, 1]],
+#     [[0, 0], [2, 0], [4, 0], [4, 2], [4, 4], [2, 4], [0, 4], [0, 2]]]
+# testfixpts = [[1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+#               [1, 0, 1, 0, 1, 0, 1, 0]]
+# path = testpaths[1]
+# newpath = smooth(path, testfixpts[1])
+# for i in range(len(path)):
+#     print('[' + ', '.join('%.3f' % x for x in path[i]) + '] -> [' + ', '.join('%.3f' % x for x in newpath[i]) + ']')
 
 solution_check(smooth)
