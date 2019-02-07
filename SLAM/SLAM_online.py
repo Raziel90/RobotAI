@@ -487,12 +487,9 @@ def make_data(N, num_landmarks, world_size, measurement_range, motion_noise,
         # we are done when all landmarks were observed; otherwise re-run
         complete = (sum(seen) == num_landmarks)
 
-    print
-    ' '
-    print
-    'Landmarks: ', r.landmarks
-    print
-    r
+    print(' ')
+    print('Landmarks: ', r.landmarks)
+    print(r)
 
     return data
 
@@ -506,10 +503,58 @@ def make_data(N, num_landmarks, world_size, measurement_range, motion_noise,
 #
 
 def slam(data, N, num_landmarks, motion_noise, measurement_noise):
-    # Set the dimension of the filter
-    dim = 2 * (N + num_landmarks)
+    import numpy as np
+    dim = 2 * (N + num_landmarks)  # havin a single big matrix for x and y helps correlating the x and y
+    omega = np.zeros((dim, dim))
+    xi = np.zeros((dim))
+    measurement_conf = 1 / measurement_noise
+    motion_conf = 1 / motion_noise
 
-    # make the constraint information matrix and vector
+    init_point = [world_size / 2, world_size / 2]
+    omega[0, 0] += 1
+    omega[1, 1] += 1
+    xi[0:2] += np.array(init_point)  # * motion_conf
+    for t, data_slot in enumerate(data):
+        measurement, motion = data_slot
+        # print(point)
+        n = t * 2
+        for obs in measurement:
+            j, x, y = obs
+            m = 2 * (N + j)  # entry of the landmark
+            dist_obs = np.array([x, y])
+            for b in range(2):
+                omega[n + b, n + b] += measurement_conf
+                omega[m + b, m + b] += measurement_conf
+
+                omega[m + b, n + b] += -measurement_conf
+                omega[n + b, m + b] += -measurement_conf
+
+                xi[n + b] += - dist_obs[b] * measurement_conf
+                xi[m + b] += dist_obs[b] * measurement_conf
+
+            # print(t-1, N + j, N + num_landmarks)
+        for b in range(4):
+            omega[n + b, n + b] += motion_conf
+        for b in range(2):
+            omega[n + b, n + 2 + b] += -motion_conf
+            omega[n + 2 + b, n + b] += -motion_conf
+            xi[n + b] += -motion[b] * motion_conf
+            xi[n + 2 + b] += motion[b] * motion_conf
+
+    xi = matrix([xi.tolist()]).transpose()
+    omega = matrix(omega.tolist())
+    mu = omega.inverse() * xi
+    return mu
+
+
+# --------------------------------
+#
+# online_slam - retains all landmarks but only most recent robot pose
+#
+def online_slam(data, N, num_landmarks, motion_noise, measurement_noise):
+    dim = 2 * (1 + num_landmarks)  # havin a single big matrix for x and y helps correlating the x and y
+    measurement_conf = 1 / measurement_noise
+    motion_conf = 1 / motion_noise
     Omega = matrix()
     Omega.zero(dim, dim)
     Omega.value[0][0] = 1.0
@@ -519,60 +564,55 @@ def slam(data, N, num_landmarks, motion_noise, measurement_noise):
     Xi.zero(dim, 1)
     Xi.value[0][0] = world_size / 2.0
     Xi.value[1][0] = world_size / 2.0
+    S = 2
 
-    # process the data
+    for t, t_data in enumerate(data):
 
-    for k in range(len(data)):
+        measurements, motion = t_data
 
-        # n is the index of the robot pose in the matrix/vector
-        n = k * 2
+        for obs in measurements:
+            # print(obs[0])
+            m = 2 * (1 + obs[0])  # entry of the landmark
 
-        measurement = data[k][0]
-        motion = data[k][1]
+            for b in range(2):  # here is referred only to time t+1 that is why n + 2 + b
+                Omega.value[b][b] += measurement_conf
+                Omega.value[m + b][m + b] += measurement_conf
 
-        # integrate the measurements
-        for i in range(len(measurement)):
+                Omega.value[m + b][b] += -measurement_conf
+                Omega.value[b][m + b] += -measurement_conf
 
-            # m is the index of the landmark coordinate in the matrix/vector
-            m = 2 * (N + measurement[i][0])
+                Xi.value[b][0] += - obs[b + 1] * measurement_conf
+                Xi.value[m + b][0] += obs[b + 1] * measurement_conf
 
-            # update the information maxtrix/vector based on the measurement
-            for b in range(2):
-                Omega.value[n + b][n + b] += 1.0 / measurement_noise
-                Omega.value[m + b][m + b] += 1.0 / measurement_noise
-                Omega.value[n + b][m + b] += -1.0 / measurement_noise
-                Omega.value[m + b][n + b] += -1.0 / measurement_noise
-                Xi.value[n + b][0] += -measurement[i][1 + b] / measurement_noise
-                Xi.value[m + b][0] += measurement[i][1 + b] / measurement_noise
+        # new_dim = 2 * (num_landmarks + 2)
+        idx = [0, 1] + list(range(4, dim + 2))
+        Omega = Omega.expand(dim + 2, dim + 2, idx)
+        Xi = Xi.expand(dim + 2, 1, idx, [0])
 
-        # update the information maxtrix/vector based on the robot motion
         for b in range(4):
-            Omega.value[n + b][n + b] += 1.0 / motion_noise
+            Omega.value[b][b] += motion_conf  #sum on the diagonal of the movements
         for b in range(2):
-            Omega.value[n + b][n + b + 2] += -1.0 / motion_noise
-            Omega.value[n + b + 2][n + b] += -1.0 / motion_noise
-            Xi.value[n + b][0] += -motion[b] / motion_noise
-            Xi.value[n + b + 2][0] += motion[b] / motion_noise
+            Omega.value[b][b + 2] += -motion_conf
+            Omega.value[b + 2][b] += -motion_conf
+            Xi.value[b][0] += -motion[b] * motion_conf
+            Xi.value[b + 2][0] += motion[b] * motion_conf
 
-    # compute best estimate
-    mu = Omega.inverse() * Xi
+        # matrix update
 
-    # return the result
-    return mu
+        keep_elements = list(range(2, dim + 2))
+        Omega1 = Omega.take(keep_elements)
+        Xi1 = Xi.take(keep_elements, [0])
 
+        A = Omega.take([0, 1], keep_elements)
+        B_inv = Omega.take([0, 1]).inverse()
+        C = Xi.take([0, 1], [0])
 
-# --------------------------------
-#
-# online_slam - retains all landmarks but only most recent robot pose
-#
+        Omega = (Omega1 - (A.transpose() * B_inv * A))
+        Xi = (Xi1 - (A.transpose() * B_inv * C))
+        # print(t)
+    new_mu = Omega.inverse() * Xi
 
-def online_slam(data, N, num_landmarks, motion_noise, measurement_noise):
-    #
-    #
-    # Enter your code here!
-    #
-    #
-    return mu, Omega  # make sure you return both of these matrices to be marked correct.
+    return new_mu, Omega  # make sure you return both of these matrices to be marked correct.
 
 
 # --------------------------------
@@ -700,9 +740,10 @@ answer_omega1 = matrix(
      [-0.1811320754716981, 0.0, -0.4056603773584906, 0.0, -0.360377358490566, 0.0, 1.2339622641509433, 0.0],
      [0.0, -0.1811320754716981, 0.0, -0.4056603773584906, 0.0, -0.360377358490566, 0.0, 1.2339622641509433]])
 
-# result = online_slam(testdata1, 5, 3, 2.0, 2.0)
-# solution_check(result, answer_mu1, answer_omega1)
-
+result = online_slam(testdata1, 5, 3, 2.0, 2.0)
+result2 = slam(testdata1, 5, 3, 2.0, 2.0)
+print(result[0]), print(result2.value[4 * 2:])
+solution_check(result, answer_mu1, answer_omega1)
 
 # -----------
 # Test Case 2

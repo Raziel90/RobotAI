@@ -503,7 +503,6 @@ def print_result(N, num_landmarks, result):
 # slam - retains entire path and all landmarks
 #
 
-############## ENTER YOUR CODE BELOW HERE ###################
 
 def slam(data, N, num_landmarks, motion_noise, measurement_noise):
     import numpy as np
@@ -517,8 +516,6 @@ def slam(data, N, num_landmarks, motion_noise, measurement_noise):
     omega[0, 0] += 1
     omega[1, 1] += 1
     xi[0:2] += np.array(init_point)  # * motion_conf
-    print(init_point)
-    # [[[], init_point]] +
     for t, data_slot in enumerate(data):
         measurement, motion = data_slot
         # print(point)
