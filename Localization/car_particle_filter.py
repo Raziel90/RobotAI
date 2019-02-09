@@ -21,9 +21,8 @@
 # bottom. If you uncomment them for testing, make sure you
 # re-comment them before you submit.
 
-from math import *
 import random
-
+from math import *
 
 # --------
 #
@@ -236,16 +235,13 @@ def generate_ground_truth(motions):
 def print_measurements(Z):
     T = len(Z)
 
-    print
-    'measurements = [[%.8s, %.8s, %.8s, %.8s],' % \
-    (str(Z[0][0]), str(Z[0][1]), str(Z[0][2]), str(Z[0][3]))
+    print('measurements = [[%.8s, %.8s, %.8s, %.8s],' %
+          (str(Z[0][0]), str(Z[0][1]), str(Z[0][2]), str(Z[0][3])))
     for t in range(1, T - 1):
-        print
-        '                [%.8s, %.8s, %.8s, %.8s],' % \
-        (str(Z[t][0]), str(Z[t][1]), str(Z[t][2]), str(Z[t][3]))
-    print
-    '                [%.8s, %.8s, %.8s, %.8s]]' % \
-    (str(Z[T - 1][0]), str(Z[T - 1][1]), str(Z[T - 1][2]), str(Z[T - 1][3]))
+        print('                [%.8s, %.8s, %.8s, %.8s],' %
+              (str(Z[t][0]), str(Z[t][1]), str(Z[t][2]), str(Z[t][3])))
+    print('                [%.8s, %.8s, %.8s, %.8s]]' %
+          (str(Z[T - 1][0]), str(Z[T - 1][1]), str(Z[T - 1][2]), str(Z[T - 1][3])))
 
 
 # --------
@@ -348,17 +344,14 @@ def particle_filter(motions, measurements, N=500):  # I know it's tempting, but 
 ##    It will print the robot's last location when calling it.
 ##
 ##
-# number_of_iterations = 6
-# motions = [[2. * pi / 20, 12.] for row in range(number_of_iterations)]
-#
-# x = generate_ground_truth(motions)
-# final_robot = x[0]
-# measurements = x[1]
-# estimated_position = particle_filter(motions, measurements)
-# print_measurements(measurements)
-# print('Ground truth:    ', final_robot)
-# print('Particle filter: ', estimated_position)
-# print('Code check:      ', check_output(final_robot, estimated_position))
-#
-#
+number_of_iterations = 6
+motions = [[2. * pi / 20, 12.] for row in range(number_of_iterations)]
 
+x = generate_ground_truth(motions)
+final_robot = x[0]
+measurements = x[1]
+estimated_position = particle_filter(motions, measurements)
+print_measurements(measurements)
+print('Ground truth:    ', final_robot)
+print('Particle filter: ', estimated_position)
+print('Code check:      ', check_output(final_robot, estimated_position))

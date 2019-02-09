@@ -54,6 +54,19 @@ cost = [2, 1, 20]  # cost has 3 values, corresponding to making
 #  [' ', ' ', ' ', '#', ' ', ' '],
 #  [' ', ' ', ' ', '#', ' ', ' ']]
 # ----------
+cost = [1, 1, 14]
+goal = [0, 1]
+# goal = [2, 1]
+# goal = [0, 3]
+
+init = [4, 2, 0]
+
+grid = [[0, 0, 0, 0, 0],
+        [0, 1, 0, 1, 0],
+        [0, 0, 0, 0, 0],
+        [1, 1, 0, 1, 1],
+        [1, 1, 0, 1, 1]]
+
 
 # ----------------------------------------
 # modify code below
@@ -92,7 +105,7 @@ def optimum_policy2D(grid, init, goal, cost):
     x, y, t = init
     policy2D[x][y] = policy[x][y][t]
     while [x, y] != goal:
-        print(x, y, t)
+        # print(x, y, t)
         if policy[x][y][t] == '#':
             o = t
             # print('#')
