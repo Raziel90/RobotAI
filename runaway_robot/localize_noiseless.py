@@ -70,27 +70,7 @@ from robot import *
 def estimate_next_pos(measurement, OTHER=None):
     """Estimate the next (x, y) position of the wandering Traxbot
     based on noisy (x, y) measurements."""
-    # if OTHER is not None:
-    #     prev = OTHER['meas'][-1]
-    #     step = distance_between(prev, measurement)
-    #     movement = [measurement[0] - prev[0],measurement[1] - prev[1]]
-    #     orient = atan2(movement[1], movement[0])
-    #     if 'filter' not in OTHER.keys():
-    #         OTHER['filter'] = ParticleFilterTheta(robot_pos=prev, step_size=step, heading=orient)
-    #     else:
-    #         OTHER['filter'].update(measurement)
-    #         OTHER['filter'].set_position(prev, orient)
-    #
-    #     OTHER['filter'].move()
-    #     prediction = OTHER['filter'].get_position()
-    #     xy_estimate = prediction[:-1]
-    #     OTHER['predictions'].append(xy_estimate)
-    #
-    # else:
-    #     xy_estimate = measurement
-    #     OTHER = dict()
-    #     OTHER['meas'] = [measurement]
-    #     OTHER['predictions'] = [xy_estimate]
+
     if OTHER is not None and len(OTHER['meas']) >= 2:
 
         angles = []
@@ -149,7 +129,7 @@ def demo_grading(estimate_next_pos_fcn, target_bot, OTHER=None):
         target_bot.move_in_circle()
         true_position = (target_bot.x, target_bot.y)
         error = distance_between(position_guess, true_position)
-        print(error, true_position)
+        # print(error, true_position)
         if error <= distance_tolerance:
             print("You got it right! It took you ", ctr, " steps to localize.")
             localized = True
