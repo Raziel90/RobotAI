@@ -1,37 +1,19 @@
 # ----------
-# Part Three
+# Part Four
 #
-# Now you'll actually track down and recover the runaway Traxbot.
-# In this step, your speed will be about twice as fast the runaway bot,
-# which means that your bot's distance parameter will be about twice that
-# of the runaway. You can move less than this parameter if you'd
-# like to slow down your bot near the end of the chase.
+# Again, you'll track down and recover the runaway Traxbot.
+# But this time, your speed will be about the same as the runaway bot.
+# This may require more careful planning than you used last time.
 #
 # ----------
 # YOUR JOB
 #
-# Complete the next_move function. This function will give you access to
-# the position and heading of your bot (the hunter); the most recent
-# measurement received from the runaway bot (the target), the max distance
-# your bot can move in a given timestep, and another variable, called
-# OTHER, which you can use to keep track of information.
-#
-# Your function will return the amount you want your bot to turn, the
-# distance you want your bot to move, and the OTHER variable, with any
-# information you want to keep track of.
+# Complete the next_move function, similar to how you did last time.
 #
 # ----------
 # GRADING
 #
-# We will make repeated calls to your next_move function. After
-# each call, we will move the hunter bot according to your instructions
-# and compare its position to the target bot's true position
-# As soon as the hunter is within 0.01 stepsizes of the target,
-# you will be marked correct and we will tell you how many steps it took
-# before your function successfully located the target bot.
-#
-# As an added challenge, try to get to the target bot as quickly as
-# possible.
+# Same as part 3. Again, try to catch the target in as few steps as possible.
 
 from math import *
 
@@ -40,7 +22,6 @@ from robot import *
 
 
 def next_move(hunter_position, hunter_heading, target_measurement, max_distance, OTHER=None):
-
     # This function will be called after each time the target moves.
     if not OTHER:  # first time calling this function, set up my OTHER variables.
         measurements = [target_measurement]
@@ -70,14 +51,20 @@ def next_move(hunter_position, hunter_heading, target_measurement, max_distance,
         heading = get_heading(measurements[-2], measurements[-1]) % (2 * pi)
         tgt_robot = robot(target_measurement[0], target_measurement[1], heading)
         tgt_robot.move(distance=step_tgt, turning=turning_tgt)
+        predicted_steps = 1
+        tgt_goal = tgt_robot.sense()
+        while predicted_steps * max_distance < distance_between(tgt_goal, hunter_position) and predicted_steps < 20:
+            tgt_robot.move(distance=step_tgt, turning=turning_tgt)
+            tgt_goal = tgt_robot.sense()
+            predicted_steps += 1
         # tgt_robot.move(distance=step_tgt, turning=turning_tgt)
-        future_tgt = tgt_robot.sense()
-        distance = distance_between(hunter_position, future_tgt)
-        heading_to_target = get_heading(hunter_position, future_tgt)
-        turning = heading_to_target - hunter_heading  # +.45
+
+        distance = distance_between(hunter_position, tgt_goal)
+        heading_to_target = get_heading(hunter_position, tgt_goal)
+        turning = heading_to_target - hunter_heading
         distance = min(max_distance, distance)
-        draw_chase(hunter_position, hunter_heading, distance, turning, target_measurement, heading, step_tgt,
-                   turning_tgt, future_tgt)
+        # draw_chase(hunter_position, hunter_heading, distance, turning, target_measurement, heading, step_tgt,
+        #            turning_tgt, tgt_goal)
 
     # The OTHER variable is a place for you to store any historical information about
     # the progress of the hunt (or maybe some localization information). Your return format
@@ -89,21 +76,24 @@ def next_move(hunter_position, hunter_heading, target_measurement, max_distance,
 def draw_chase(hunter_position, hunter_heading, hunter_step, hunter_turning, target_measurement, target_heading,
                target_step, target_turning, target_future):
     import matplotlib.pyplot as plt
+    dist = distance_between(hunter_position, target_measurement)
     plt.figure(0)
-    plt.text(-9.5, 26, 'step=' + str(round(hunter_step, 2)) + ', turning=' + str(round(hunter_turning, 2)))
-    plt.text(2., 26, 'target: step=' + str(round(target_step, 2)) + ', turning=' + str(round(target_turning, 2)))
+    plt.text(-14, 29, 'step=' + str(round(hunter_step, 2)) + ', turning=' + str(round(hunter_turning, 2)))
+    plt.text(2., 29, 'target: step=' + str(round(target_step, 2)) + ', turning=' + str(round(target_turning, 2)))
+    plt.text(-5, 27, 'distance: ' + str(round(dist, 3)))
     plt.scatter(hunter_position[0], hunter_position[1])
     plt.scatter(target_measurement[0], target_measurement[1], marker='^')
     plt.text(target_measurement[0], target_measurement[1],
              (round(target_measurement[0], 2), round(target_measurement[1], 2)))
     plt.scatter(target_future[0], target_future[1], marker='*')
     plt.text(target_future[0], target_future[1], (round(target_future[0], 2), round(target_future[1], 2)))
+    plt.text(hunter_position[0], hunter_position[1], (round(hunter_position[0], 2), round(hunter_position[1], 2)))
     plt.arrow(hunter_position[0], hunter_position[1], hunter_step * cos(hunter_turning + hunter_heading),
               hunter_step * sin(hunter_turning + hunter_heading), head_width=0.15)
     plt.arrow(target_measurement[0], target_measurement[1], target_step * cos(target_turning + target_heading),
               target_step * sin(target_turning + target_heading), head_width=0.15)
-    plt.xlim([-10, 10])
-    plt.ylim([5, 27])
+    plt.xlim([-15, 15])
+    plt.ylim([0, 30])
     plt.show()
 
 
@@ -118,7 +108,7 @@ def demo_grading(hunter_bot, target_bot, next_move_fcn, OTHER=None):
     """Returns True if your next_move_fcn successfully guides the hunter_bot
     to the target_bot. This function is here to help you understand how we
     will grade your submission."""
-    max_distance = 1.94 * target_bot.distance  # 1.94 is an example. It will change.
+    max_distance = 0.98 * target_bot.distance  # 0.98 is an example. It will change.
     separation_tolerance = 0.02 * target_bot.distance  # hunter must be within 0.02 step size to catch target
     caught = False
     ctr = 0
@@ -130,7 +120,6 @@ def demo_grading(hunter_bot, target_bot, next_move_fcn, OTHER=None):
         hunter_position = (hunter_bot.x, hunter_bot.y)
         target_position = (target_bot.x, target_bot.y)
         separation = distance_between(hunter_position, target_position)
-        print(separation, hunter_position, target_position)
         if separation < separation_tolerance:
             print("You got it right! It took you ", ctr, " steps to catch the target.")
             caught = True
